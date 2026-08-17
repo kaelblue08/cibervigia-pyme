@@ -31,10 +31,9 @@
 ## 🚀 Cómo Ejecutar Localmente
 
 1. Clona este repositorio:
-   ```bash
-git clone https://github.com/kaelblue08/cibervigia-pyme.git
-cd cibervigia-pyme
-   ```
+   ```bash git clone https://github.com/kaelblue08/cibervigia-pyme.git
+cd cibervigia-pyme ```
+
 2. Abre `index.html` en cualquier navegador web moderno (no requiere instalación de servidores pesados ni dependencias externas).
 
 ---
