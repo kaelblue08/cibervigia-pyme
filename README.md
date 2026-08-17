@@ -23,7 +23,8 @@
    ```bash
    git clone https://github.com/kaelblue08/cibervigia-pyme.git
    cd cibervigia-pyme
-Abre index.html en cualquier navegador web moderno (no requiere instalación de servidores pesados ni dependencias externas).
+2. Abre index.html en cualquier navegador web moderno (no requiere instalación de servidores pesados ni dependencias externas).
+---
 📜 Créditos e Institución
 Autor e Investigador: Jordy Kael Pineda D'Meza
 Institución: Instituto Técnico Superior Especializado (ITSE), Panamá, República de Panamá.
