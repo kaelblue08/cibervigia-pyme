@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CiberVigía Pyme · Diagnóstico de Ciberseguridad Gratuito para América Latina</title>
+  <meta name="description" content="Plataforma gratuita y de código abierto para que dueños de pymes en América Latina diagnostiquen si su negocio fue comprometido digitalmente y reciban un plan de acción concreto." />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- React & Libraries via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(18, 26, 43, 0.8);
+      --border-color: rgba(255, 255, 255, 0.09);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --accent-cyan: #38bdf8;
+      --accent-blue: #0284c7;
+      --accent-purple: #a855f7;
+
+      --risk-safe: #10b981;
+      --risk-safe-bg: rgba(16, 185, 129, 0.12);
+      --risk-safe-border: rgba(16, 185, 129, 0.35);
+
+      --risk-warning: #f59e0b;
+      --risk-warning-bg: rgba(245, 158, 11, 0.12);
+      --risk-warning-border: rgba(245, 158, 11, 0.35);
+
+      --risk-danger: #ef4444;
+      --risk-danger-bg: rgba(239, 68, 68, 0.12);
+      --risk-danger-border: rgba(239, 68, 68, 0.35);
+
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 65%, rgba(168, 85, 247, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+
+    button { font-family: var(--font-sans); cursor: pointer; border: none; outline: none; }
+
+    .app-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    }
+
+    .btn-whatsapp {
+      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+      transition: all 0.2s ease;
+    }
+    .btn-whatsapp:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-cyan { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-safe { background: var(--risk-safe-bg); color: var(--risk-safe); border: 1px solid var(--risk-safe-border); }
+    .badge-warning { background: var(--risk-warning-bg); color: var(--risk-warning); border: 1px solid var(--risk-warning-border); }
+    .badge-danger { background: var(--risk-danger-bg); color: var(--risk-danger); border: 1px solid var(--risk-danger-border); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // --- DATA ---
+    const categories = {
+      devices: { name: 'Comportamiento de Dispositivos', icon: '💻' },
+      emails: { name: 'Correos y Mensajes Sospechosos', icon: '✉️' },
+      banking: { name: 'Banca y Transacciones Financieras', icon: '🏦' },
+      wifi: { name: 'Red Wi-Fi y Conexiones', icon: '📶' },
+      passwords: { name: 'Contraseñas y Accesos (2FA)', icon: '🔑' },
+      backups: { name: 'Respaldos y Actualizaciones', icon: '💾' }
+    };
+
+    const questionsData = [
+      {
+        id: 1,
+        category: 'devices',
+        title: '1. ¿Tu computadora o celular se volvió muy lento de repente, o se abren ventanas/programas solos?',
+        description: 'Comportamientos anómalos repentinos son indicios frecuentes de malware, programas espía (spyware) o minería no autorizada de criptomonedas usando tus recursos.',
+        options: [
+          { text: 'No, los equipos funcionan normalmente y a buena velocidad.', points: 0, level: 'safe' },
+          { text: 'A veces se lentifican o aparecen ventanas flotantes ocasionales.', points: 10, level: 'warning' },
+          { text: 'Sí, las computadoras están sumamente lentas y se abren programas solos constantemente.', points: 20, level: 'danger' }
+        ],
+        frameworkAlign: 'CIS Control 10 / NIST DE.CM (Monitoreo Continuo)'
+      },
+      {
+        id: 2,
+        category: 'emails',
+        title: '2. ¿Tú o tus empleados han recibido correos sospechosos o mensajes de WhatsApp pidiendo datos o claves?',
+        description: 'El Phishing es la causa #1 de ciberataques a pymes en América Latina. Los atacantes se hacen pasar por bancos, proveedores o la autoridad tributaria.',
+        options: [
+          { text: 'No recibimos o sabemos identificar y borrar el correo basura de inmediato.', points: 0, level: 'safe' },
+          { text: 'Recibimos correos raros con frecuencia y sospechamos que alguien podría hacer clic por error.', points: 10, level: 'warning' },
+          { text: 'Sí, e incluso algún empleado ha descargado archivos adjuntos raros o dado clic a enlaces sospechosos recientemente.', points: 20, level: 'danger' }
+        ],
+        frameworkAlign: 'CIS Control 14 / NIST PR.AT (Concientización y Capacitación)'
+      },
+      {
+        id: 3,
+        category: 'banking',
+        title: '3. ¿Has notado transferencias bancarias no reconocidas o cambios raros en las cuentas de tus proveedores?',
+        description: 'El fraude del "proveedor comprometido" intercepta facturas electrónicas o correos para cambiar el número de cuenta bancaria del pago.',
+        options: [
+          { text: 'No, siempre verificamos los datos bancarios por llamada directa antes de pagar.', points: 0, level: 'safe' },
+          { text: 'No verificamos por teléfono, pero revisamos los comprobantes detenidamente.', points: 8, level: 'warning' },
+          { text: 'Sí, hemos detectado cobros/pagos extraños o cambios de cuenta de proveedores por simple correo sin verificar.', points: 18, level: 'danger' }
+        ],
+        frameworkAlign: 'CIS Control 6 / NIST PR.AC (Control de Accesos)'
+      },
+      {
+        id: 4,
+        category: 'wifi',
+        title: '4. ¿Qué tipo de clave usa el Wi-Fi de tu negocio y quién se conecta a él?',
+        description: 'Una red Wi-Fi sin seguridad o con clave genérica permite a cualquier persona cercana interceptar tu facturación, ventas o correos.',
+        options: [
+          { text: 'Usamos contraseña fuerte, cambiada recientemente y red separada (Guest) para los clientes.', points: 0, level: 'safe' },
+          { text: 'Usamos la misma clave del módem del proveedor para clientes y computadoras del trabajo.', points: 10, level: 'warning' },
+          { text: 'La red Wi-Fi es abierta sin contraseña o usamos la misma clave sencilla desde hace años.', points: 18, level: 'danger' }
+        ],
+        frameworkAlign: 'CIS Control 12 / NIST PR.AC (Seguridad de Redes)'
+      },
+      {
+        id: 5,
+        category: 'passwords',
+        title: '5. ¿Cómo gestionan las contraseñas del negocio y usan verificación en dos pasos (2FA)?',
+        description: 'Reutilizar contraseñas familiares o no activar la verificación en dos pasos facilita que un atacante ingrese a tu correo o banca en línea.',
+        options: [
+          { text: 'Usamos contraseñas únicas y largas en cada cuenta + Verificación en dos pasos (2FA / Código al celular).', points: 0, level: 'safe' },
+          { text: 'Usamos la misma clave en varias cuentas o la tenemos anotada en papeles al lado del teclado.', points: 10, level: 'warning' },
+          { text: 'Compartimos claves entre todos, usamos la misma contraseña corta en todo y NO usamos 2FA.', points: 18, level: 'danger' }
+        ],
+        frameworkAlign: 'CIS Control 5 / NIST PR.AC (Gestión de Credenciales)'
+      },
+      {
+        id: 6,
+        category: 'backups',
+        title: '6. ¿Con qué frecuencia hacen respaldo (copia de seguridad) de su información importante y dónde lo guardan?',
+        description: 'Ante un ataque de Ransomware (secuestro de archivos), la única forma de evitar la quiebra o pago de rescate es tener respaldos actualizados y fuera de la red.',
+        options: [
+          { text: 'Hacemos respaldos automáticos semanales/diarios y guardamos copias desconectadas o en la nube cifrada.', points: 0, level: 'safe' },
+          { text: 'Hacemos respaldo de vez en cuando en un USB que se mantiene conectado a la computadora.', points: 8, level: 'warning' },
+          { text: 'No hacemos copia de seguridad de nuestros archivos, facturas o base de datos de clientes.', points: 16, level: 'danger' }
+        ],
+        frameworkAlign: 'CIS Control 11 / NIST PR.IP (Recuperación de Datos)'
+      }
+    ];
+
+    const recommendedTools = [
+      { name: 'Bitwarden', category: 'Gestor de Contraseñas', type: 'Gratuito & Open Source', desc: 'Guarda todas las contraseñas del negocio de forma segura y genera claves complejas imposibles de adivinar.', url: 'https://bitwarden.com' },
+      { name: 'Avast Business / ClamAV', category: 'Antivirus Empresarial', type: 'Versión Gratuita', desc: 'Protege las computadoras contra virus, programas espía y secuestradores de información.', url: 'https://www.avast.com/business' },
+      { name: 'Duplicati / Google Drive Cifrado', category: 'Respaldos Automáticos', type: 'Gratuito', desc: 'Crea copias de seguridad de tus facturas y archivos importantes de forma periódica.', url: 'https://www.duplicati.com' },
+      { name: 'Google / Microsoft Authenticator', category: 'Doble Factor (2FA)', type: 'Gratuito en Móvil', desc: 'Agrega un segundo paso de verificación mediante códigos temporales en tu teléfono celular.', url: 'https://support.google.com/accounts/answer/1066447' }
+    ];
+
+    const securityTemplates = [
+      {
+        id: 'policy-passwords',
+        title: 'Política Simplificada de Contraseñas para Pymes',
+        badge: 'Uso Interno',
+        description: 'Reglas mínimas y sencillas que todo empleado de tu negocio debe cumplir para proteger los accesos.',
+        content: `POLÍTICA DE SEGURIDAD DE CONTRASEÑAS - [NOMBRE DE LA PYME]\n\n1. LONGITUD MÍNIMA: Toda contraseña del negocio debe tener al menos 12 caracteres (usar frases cortas memorables, ej: "Café*Panama#2026").\n2. PROHIBICIÓN DE REUTILIZACIÓN: No se debe usar la misma clave del correo institucional para redes sociales o cuentas personales.\n3. DOBLE FACTOR (2FA): Es obligatorio activar el segundo factor de autenticación en la banca en línea, correo de la empresa y redes sociales.\n4. CONFIDENCIALIDAD: Queda estrictamente prohibido anotar claves en papeles al lado del monitor o compartirlas con terceros.\n5. GESTOR DE CONTRASEÑAS: Se recomienda usar Bitwarden o un gestor autorizado.\n\nAprobado por la Gerencia.`
+      },
+      {
+        id: 'monthly-checklist',
+        title: 'Checklist de Seguridad Digital Mensual',
+        badge: 'Lista de Verificación',
+        description: 'Control visual rápido para ejecutar el primer lunes de cada mes en tu negocio.',
+        content: `CHECKLIST MENSUAL DE SEGURIDAD DIGITAL - [NOMBRE DE LA PYME]\n\n[ ] 1. ACTUALIZACIONES: Verificar que Windows y antivirus tengan parches del mes.\n[ ] 2. RESPALDOS: Probar la restauración de al menos 1 archivo del respaldo.\n[ ] 3. ACCESOS: Dar de baja cuentas de colaboradores retirados.\n[ ] 4. BANCA EN LÍNEA: Revisar extractos bancarios por cargos raros.\n[ ] 5. RED WI-FI: Comprobar dispositivos conectados en la red.\n[ ] 6. CIBERVIGÍA: Realizar el Chequeo Rápido trimestral.`
+      },
+      {
+        id: 'incident-protocol',
+        title: 'Protocolo Rápido de Respuesta ante Sospecha de Ataque',
+        badge: 'Emergencia',
+        description: 'Pasos urgentes a seguir si sospechas que han hackeado tu computadora o vaciado datos.',
+        content: `PROTOCOLO DE EMERGENCIA ANTE ATAQUE DIGITAL\n\nPASO 1: DESCONECTAR DE INTERNET (Quitar cable de red o apagar Wi-Fi del equipo afectado).\nPASO 2: CAMBIAR CLAVES DESDE OTRO DISPOSITIVO SEGURO (Banca en línea y correos desde celular personal con datos).\nPASO 3: NOTIFICAR AL BANCO DE INMEDIATO para bloquear transacciones.\nPASO 4: RECOLECTAR EVIDENCIA (Tomar fotos de avisos de secuestro o correos raros).\nPASO 5: SOLICITAR AYUDA A CIBERVIGÍA PYME.`
+      }
+    ];
+
+    // --- MAIN APP COMPONENT ---
+    function App() {
+      const [activeTab, setActiveTab] = useState('hero');
+      const [checkupResult, setCheckupResult] = useState(null);
+      const [answers, setAnswers] = useState({});
+      const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+      const [selectedTemplate, setSelectedTemplate] = useState(null);
+      const [copiedId, setCopiedId] = useState(null);
+      const [submittedVolunteers, setSubmittedVolunteers] = useState(false);
+      const [formVolunteers, setFormVolunteers] = useState({
+        businessName: '', contactName: '', phone: '', email: '', province: 'Panamá', details: ''
+      });
+      const [sendingEmail, setSendingEmail] = useState(false);
+
+      // Calculate Checkup
+      const handleSelectOption = (qId, option) => {
+        setAnswers({ ...answers, [qId]: option });
+      };
+
+      const handleNextQuestion = () => {
+        if (currentQuestionIdx < questionsData.length - 1) {
+          setCurrentQuestionIdx(currentQuestionIdx + 1);
+        } else {
+          // Finish
+          let totalScore = 0;
+          const categoryScores = { devices: 0, emails: 0, banking: 0, wifi: 0, passwords: 0, backups: 0 };
+          questionsData.forEach(q => {
+            const sel = answers[q.id];
+            if (sel) {
+              totalScore += sel.points;
+              categoryScores[q.category] += sel.points;
+            }
+          });
+
+          let riskLevel = 'safe';
+          let riskTitle = 'Riesgo Bajo (🟢)';
+          if (totalScore >= 31 && totalScore <= 60) {
+            riskLevel = 'warning';
+            riskTitle = 'Riesgo Moderado (🟡)';
+          } else if (totalScore > 60) {
+            riskLevel = 'danger';
+            riskTitle = 'Alto Riesgo - Crítico (🔴)';
+          }
+
+          const res = { totalScore, riskLevel, riskTitle, categoryScores, answers };
+          setCheckupResult(res);
+          setActiveTab('traffic');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      };
+
+      const handleDownloadPDF = () => {
+        if (!window.jspdf) {
+          alert('Generador de PDF cargando... Inténtalo de nuevo en unos segundos.');
+          return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const score = checkupResult ? checkupResult.totalScore : 45;
+        const title = checkupResult ? checkupResult.riskTitle : 'Riesgo Moderado (🟡)';
+
+        doc.setFillColor(9, 13, 22);
+        doc.rect(0, 0, 210, 297, 'F');
+
+        doc.setTextColor(56, 189, 248);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CiberVigía Pyme', 15, 20);
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.text('Hoja de Ruta Personalizada de Ciberseguridad', 15, 30);
+
+        doc.setFontSize(10);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')} | Evaluado por: Algoritmo CiberVigía`, 15, 38);
+        doc.text('Proyecto Personal e Independiente · Jordy Kael Pineda D\'Meza (ITSE Panamá)', 15, 44);
+
+        doc.setDrawColor(56, 189, 248);
+        doc.line(15, 48, 195, 48);
+
+        doc.setFillColor(18, 26, 43);
+        doc.roundedRect(15, 54, 180, 28, 3, 3, 'F');
+        doc.setFontSize(12);
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Nivel de Riesgo: ${title}`, 20, 65);
+        doc.text(`Puntuación Obtenida: ${score} / 100 puntos`, 20, 74);
+
+        doc.setFontSize(14);
+        doc.setTextColor(56, 189, 248);
+        doc.text('Pasos Prioritarios Recomendados:', 15, 94);
+
+        const steps = [
+          '1. Usar un gestor de contraseñas gratuito (Bitwarden) en tus equipos.',
+          '2. Activar la Verificación en Dos Pasos (2FA) en correo y WhatsApp.',
+          '3. Configurar respaldos semanales automáticos en la nube cifrada.',
+          '4. Separar la red Wi-Fi de clientes de la red principal de cobro.'
+        ];
+        let y = 104;
+        doc.setFontSize(10);
+        doc.setTextColor(230, 235, 245);
+        steps.forEach(s => { doc.text(s, 15, y); y += 8; });
+
+        doc.setFontSize(14);
+        doc.setTextColor(56, 189, 248);
+        doc.text('Herramientas Gratuitas Recomendadas:', 15, 150);
+
+        const tools = [
+          '• Bitwarden (Gestor de Contraseñas) - bitwarden.com',
+          '• Avast Business / ClamAV (Antivirus Empresarial Gratuito)',
+          '• Duplicati (Respaldos Cifrados) - duplicati.com',
+          '• Google / Microsoft Authenticator (App 2FA)'
+        ];
+        y = 160;
+        doc.setFontSize(10);
+        doc.setTextColor(200, 210, 225);
+        tools.forEach(t => { doc.text(t, 15, y); y += 7; });
+
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        doc.text('CiberVigía Pyme es una plataforma de código abierto bajo licencia MIT.', 15, 280);
+
+        doc.save(`Hoja_de_Ruta_CiberVigia_Pyme_${score}pts.pdf`);
+      };
+
+      const handleCopyText = (id, text) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2500);
+      };
+
+      // Submit via Email directly to kaelpinedaa04@gmail.com
+      const handleSubmitEmail = async (e) => {
+        e.preventDefault();
+        setSendingEmail(true);
+
+        const subject = encodeURIComponent(`🛡️ Nueva Solicitud CiberVigía Pyme: ${formVolunteers.businessName}`);
+        const bodyText = encodeURIComponent(`SOLICITUD DE ASISTENCIA TÉCNICA CIBERVIGÍA PYME:\n\n- Pyme / Negocio: ${formVolunteers.businessName}\n- Contacto: ${formVolunteers.contactName}\n- Teléfono: ${formVolunteers.phone}\n- Email del Solicitante: ${formVolunteers.email}\n- Provincia: ${formVolunteers.province}\n- Detalles del Problema: ${formVolunteers.details}`);
+
+        try {
+          // Send via Formspree/Web3Forms targeting Jordy's email
+          await fetch("https://formsubmit.co/ajax/kaelpinedaa04@gmail.com", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            body: JSON.stringify({
+              _subject: `🛡️ Nueva Solicitud CiberVigía Pyme: ${formVolunteers.businessName}`,
+              Pyme: formVolunteers.businessName,
+              Contacto: formVolunteers.contactName,
+              Telefono: formVolunteers.phone,
+              Email: formVolunteers.email,
+              Provincia: formVolunteers.province,
+              Detalles: formVolunteers.details
+            })
+          });
+        } catch (err) {
+          // Fallback to mailto link if API fails
+          window.location.href = `mailto:kaelpinedaa04@gmail.com?subject=${subject}&body=${bodyText}`;
+        } finally {
+          setSendingEmail(false);
+          setSubmittedVolunteers(true);
+          if (window.confetti) {
+            window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+          }
+        }
+      };
+
+      // Submit via WhatsApp direct chat to +507 62988190
+      const handleOpenWhatsApp = () => {
+        const targetPhone = "50762988190";
+        const textMessage = `*SOLICITUD DE ASISTENCIA - CIBERVIGÍA PYME*%0A%0A*Negocio:* ${encodeURIComponent(formVolunteers.businessName || 'No especificado')}%0A*Contacto:* ${encodeURIComponent(formVolunteers.contactName || 'No especificado')}%0A*Teléfono:* ${encodeURIComponent(formVolunteers.phone || 'No especificado')}%0A*Provincia:* ${encodeURIComponent(formVolunteers.province || 'Panamá')}%0A*Detalles:* ${encodeURIComponent(formVolunteers.details || 'Requiero asistencia técnica')}`;
+        
+        window.open(`https://wa.me/${targetPhone}?text=${textMessage}`, '_blank');
+        setSubmittedVolunteers(true);
+        if (window.confetti) {
+          window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        }
+      };
+
+      const currentQ = questionsData[currentQuestionIdx];
+
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          
+          {/* HEADER */}
+          <header style={{
+            position: 'sticky', top: 0, zIndex: 100,
+            background: 'rgba(9, 13, 22, 0.88)', backdropFilter: 'blur(16px)',
+            borderBottom: '1px solid var(--border-color)'
+          }}>
+            <div className="app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => setActiveTab('hero')}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.4rem', boxShadow: '0 0 16px rgba(56, 189, 248, 0.4)'
+                }}>
+                  🛡️
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h1 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#ffffff' }}>
+                      CiberVigía<span style={{ color: 'var(--accent-cyan)' }}>Pyme</span>
+                    </h1>
+                    <span className="badge badge-cyan">Gratuito & Open Source</span>
+                  </div>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Proyecto Personal · ITSE Panamá
+                  </p>
+                </div>
+              </div>
+
+              {/* NAV TABS */}
+              <nav style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
+                {[
+                  { id: 'hero', label: 'Inicio', icon: '🏠' },
+                  { id: 'checkup', label: 'Chequeo Rápido', icon: '🛡️' },
+                  { id: 'traffic', label: 'Semáforo de Riesgo', icon: '🚦' },
+                  { id: 'roadmap', label: 'Hoja de Ruta', icon: '📄' },
+                  { id: 'volunteers', label: 'Red de Voluntarios', icon: '👥' },
+                  { id: 'proposal', label: 'Sobre el Proyecto', icon: '📜' }
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    style={{
+                      background: activeTab === item.id ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                      color: activeTab === item.id ? '#38bdf8' : 'var(--text-muted)',
+                      border: activeTab === item.id ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
+                      padding: '8px 14px', borderRadius: '10px', fontSize: '0.85rem',
+                      fontWeight: activeTab === item.id ? '700' : '500',
+                      display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </header>
+
+          {/* MAIN BODY */}
+          <main className="app-container" style={{ flex: 1, padding: '36px 24px 60px' }}>
+            
+            {/* HERO */}
+            {activeTab === 'hero' && (
+              <section className="animate-fade-in">
+                <div className="glass-card" style={{ padding: '40px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '36px', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                        <span className="badge badge-cyan">Proyecto Personal e Independiente</span>
+                        <span className="badge badge-safe">100% Gratuito</span>
+                      </div>
+                      <h2 style={{ fontSize: '2.3rem', fontWeight: '800', lineHeight: 1.2, color: '#ffffff', marginBottom: '16px' }}>
+                        Diagnóstico de Ciberseguridad Simple para Pymes Latinoamericanas
+                      </h2>
+                      <p style={{ fontSize: '1.05rem', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
+                        Descubre en <strong>menos de 10 minutos</strong> si tu negocio fue comprometido digitalmente o está en riesgo de ataques, sin necesidad de saber de tecnología. Obtén tu diagnóstico en semáforo y una <strong>Hoja de Ruta en PDF</strong> con acciones claras.
+                      </p>
+
+                      <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                        <button onClick={() => setActiveTab('checkup')} className="btn-primary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
+                          <span>Iniciar Chequeo Rápido</span> ➔
+                        </button>
+                        <button onClick={() => setActiveTab('proposal')} className="btn-secondary">
+                          <span>Conocer el Proyecto</span>
+                        </button>
+                      </div>
+
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '18px' }}>
+                        <span>🔒 100% Anónimo (Sin registros)</span>
+                        <span>✅ Basado en NIST & CIS Controls</span>
+                      </div>
+                    </div>
+
+                    {/* Regional Problem Cards */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <h4 style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem' }}>⏰ +200 Días de Infección Silenciosa</h4>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Las pymes pasan más de 6 meses atacadas sin notarlo mientras roban datos y desvían pagos.</p>
+                      </div>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <h4 style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem' }}>💰 Auditorías Inaccesibles (&gt;$1,500 USD)</h4>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>El 80% de las microempresas en Panamá y Centroamérica no pueden pagar consultores técnicos.</p>
+                      </div>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <h4 style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem' }}>🛡️ 90% de los Negocios de América Latina</h4>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Comerciantes, hoteles y restaurantes se digitalizan rápido pero operan sin protección.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* QUICK CHECKUP QUESTIONNAIRE */}
+            {activeTab === 'checkup' && (
+              <section className="animate-fade-in" style={{ maxWidth: '820px', margin: '0 auto' }}>
+                <div className="glass-card" style={{ padding: '24px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div>
+                      <span className="badge badge-cyan" style={{ marginBottom: '4px' }}>Chequeo Rápido (~10 min)</span>
+                      <h3 style={{ color: '#ffffff', fontSize: '1.2rem', fontWeight: '700' }}>Pregunta {currentQuestionIdx + 1} de {questionsData.length}</h3>
+                    </div>
+                    <button onClick={() => { setAnswers({}); setCurrentQuestionIdx(0); }} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>🔄 Reiniciar</button>
+                  </div>
+                  <div style={{ height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round(((currentQuestionIdx + 1) / questionsData.length) * 100)}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)', transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+
+                <div className="glass-card" style={{ padding: '32px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', fontWeight: '600', marginBottom: '8px' }}>
+                    {categories[currentQ.category]?.icon} {categories[currentQ.category]?.name}
+                  </div>
+                  <h3 style={{ fontSize: '1.3rem', color: '#ffffff', fontWeight: '700', lineHeight: 1.4, marginBottom: '12px' }}>{currentQ.title}</h3>
+                  <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', marginBottom: '24px', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--accent-cyan)' }}>
+                    {currentQ.description}
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                    {currentQ.options.map((opt, idx) => {
+                      const isSelected = answers[currentQ.id]?.text === opt.text;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleSelectOption(currentQ.id, opt)}
+                          style={{
+                            textAlign: 'left', padding: '16px 20px', borderRadius: 'var(--radius-sm)',
+                            background: isSelected ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                            border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            color: isSelected ? '#ffffff' : 'var(--text-main)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.92rem' }}>{opt.text}</span>
+                          <span style={{ fontSize: '1.1rem' }}>{isSelected ? '🔘' : '⚪'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Estándar: {currentQ.frameworkAlign}</span>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button onClick={() => setCurrentQuestionIdx(Math.max(0, currentQuestionIdx - 1))} disabled={currentQuestionIdx === 0} className="btn-secondary" style={{ padding: '8px 16px' }}>Anterior</button>
+                      <button onClick={handleNextQuestion} disabled={!answers[currentQ.id]} className="btn-primary" style={{ padding: '8px 20px', opacity: !answers[currentQ.id] ? 0.5 : 1 }}>
+                        {currentQuestionIdx === questionsData.length - 1 ? 'Ver Resultado Final' : 'Siguiente ➔'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* TRAFFIC LIGHT RESULT */}
+            {activeTab === 'traffic' && (
+              <section className="animate-fade-in" style={{ maxWidth: '920px', margin: '0 auto' }}>
+                {!checkupResult ? (
+                  <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
+                    <h3 style={{ color: '#ffffff', marginBottom: '12px' }}>Aún no has completado el Chequeo Rápido</h3>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Responde las 6 preguntas para calcular tu semáforo de riesgo.</p>
+                    <button onClick={() => setActiveTab('checkup')} className="btn-primary">Iniciar Chequeo Rápido</button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="glass-card" style={{
+                      padding: '36px', marginBottom: '28px',
+                      border: `1.5px solid ${checkupResult.riskLevel === 'safe' ? 'var(--risk-safe-border)' : checkupResult.riskLevel === 'warning' ? 'var(--risk-warning-border)' : 'var(--risk-danger-border)'}`
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '28px', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{
+                            background: 'rgba(9, 13, 22, 0.8)', border: '2px solid rgba(255,255,255,0.1)',
+                            borderRadius: '30px', padding: '14px 20px', display: 'inline-flex', gap: '16px', marginBottom: '16px'
+                          }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--risk-safe)', opacity: checkupResult.riskLevel === 'safe' ? 1 : 0.2 }} />
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--risk-warning)', opacity: checkupResult.riskLevel === 'warning' ? 1 : 0.2 }} />
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--risk-danger)', opacity: checkupResult.riskLevel === 'danger' ? 1 : 0.2 }} />
+                          </div>
+
+                          <div style={{ fontSize: '3.5rem', fontWeight: '800', lineHeight: 1, color: checkupResult.riskLevel === 'safe' ? 'var(--risk-safe)' : checkupResult.riskLevel === 'warning' ? 'var(--risk-warning)' : 'var(--risk-danger)' }}>
+                            {checkupResult.totalScore} <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>/ 100 pts</span>
+                          </div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ffffff', marginTop: '6px' }}>{checkupResult.riskTitle}</div>
+                        </div>
+
+                        <div>
+                          <span className="badge badge-cyan" style={{ marginBottom: '10px' }}>Diagnóstico Oficial CiberVigía</span>
+                          <h3 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '12px' }}>
+                            {checkupResult.riskLevel === 'safe' && '🟢 Tu pyme tiene un riesgo bajo de infección'}
+                            {checkupResult.riskLevel === 'warning' && '🟡 Atención: Se detectaron vulnerabilidades'}
+                            {checkupResult.riskLevel === 'danger' && '🔴 Alerta Crítica: Posible compromiso activo'}
+                          </h3>
+                          <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>
+                            {checkupResult.riskLevel === 'safe' && 'No hay señales graves de intrusión. Mantén respaldos semanales y contraseñas seguras.'}
+                            {checkupResult.riskLevel === 'warning' && 'Hemos detectado hábitos o configuraciones riesgosas que exponen tus accesos o facturación.'}
+                            {checkupResult.riskLevel === 'danger' && 'Hay indicios serios de fallas de seguridad o infecciones. Desconecta equipos sospechosos y actúa ya.'}
+                          </p>
+
+                          <div style={{ display: 'flex', gap: '12px' }}>
+                            <button onClick={() => setActiveTab('roadmap')} className="btn-primary">Ver Hoja de Ruta (PDF) ➔</button>
+                            <button onClick={() => setActiveTab('checkup')} className="btn-secondary">Repetir</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Breakdown */}
+                    <div className="glass-card" style={{ padding: '28px' }}>
+                      <h4 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '700', marginBottom: '16px' }}>Puntuación por Área</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                        {Object.keys(categories).map(catKey => {
+                          const score = checkupResult.categoryScores[catKey] || 0;
+                          const pct = Math.min(100, Math.round((score / 20) * 100));
+                          const color = pct > 70 ? 'var(--risk-danger)' : pct > 35 ? 'var(--risk-warning)' : 'var(--risk-safe)';
+                          return (
+                            <div key={catKey} style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
+                                <span style={{ color: '#ffffff', fontWeight: '600' }}>{categories[catKey].name}</span>
+                                <span style={{ color, fontWeight: '700' }}>{score} pts</span>
+                              </div>
+                              <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: color }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* HOJA DE RUTA / ROADMAP */}
+            {activeTab === 'roadmap' && (
+              <section className="animate-fade-in" style={{ maxWidth: '960px', margin: '0 auto' }}>
+                <div className="glass-card" style={{ padding: '32px', marginBottom: '32px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                    <div>
+                      <span className="badge badge-cyan" style={{ marginBottom: '6px' }}>Hoja de Ruta Personalizada</span>
+                      <h3 style={{ fontSize: '1.5rem', color: '#ffffff', fontWeight: '800' }}>Tu Plan de Acción en Ciberseguridad</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Guía paso a paso sin tecnicismos + descarga en PDF para imprimir.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button onClick={handleDownloadPDF} className="btn-primary">📥 Descargar PDF</button>
+                      <button onClick={() => setActiveTab('volunteers')} className="btn-secondary">👥 Pedir Ayuda Técnica</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Free Software Recommendations */}
+                <h4 style={{ color: '#ffffff', fontSize: '1.2rem', fontWeight: '700', marginBottom: '16px' }}>Herramientas Gratuitas Recomendadas</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '36px' }}>
+                  {recommendedTools.map((t, i) => (
+                    <div key={i} className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <span className="badge badge-safe" style={{ marginBottom: '8px' }}>{t.type}</span>
+                        <h5 style={{ color: '#ffffff', fontWeight: '700', fontSize: '1.05rem' }}>{t.name}</h5>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '8px 0 12px' }}>{t.desc}</p>
+                      </div>
+                      <a href={t.url} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem', justifyContent: 'center' }}>
+                        Obtener 🔗
+                      </a>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Security Templates */}
+                <h4 style={{ color: '#ffffff', fontSize: '1.2rem', fontWeight: '700', marginBottom: '16px' }}>Plantillas Descargables / Copiables</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '16px' }}>
+                  {securityTemplates.map(tpl => (
+                    <div key={tpl.id} className="glass-card" style={{ padding: '20px' }}>
+                      <span className="badge badge-cyan" style={{ marginBottom: '6px' }}>{tpl.badge}</span>
+                      <h5 style={{ color: '#ffffff', fontWeight: '700', fontSize: '1.05rem', marginBottom: '6px' }}>{tpl.title}</h5>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' }}>{tpl.description}</p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => setSelectedTemplate(tpl)} className="btn-secondary" style={{ flex: 1, padding: '8px', fontSize: '0.8rem', justifyContent: 'center' }}>Ver</button>
+                        <button onClick={() => handleCopyText(tpl.id, tpl.content)} className="btn-primary" style={{ padding: '8px 14px' }}>
+                          {copiedId === tpl.id ? '¡Copiado!' : '📋 Copiar'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Template Modal */}
+                {selectedTemplate && (
+                  <div style={{
+                    position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.8)',
+                    backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+                  }}>
+                    <div className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '28px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <h4 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '700' }}>{selectedTemplate.title}</h4>
+                        <button onClick={() => setSelectedTemplate(null)} className="btn-secondary" style={{ padding: '4px 10px' }}>✕</button>
+                      </div>
+                      <pre style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '0.8rem', background: '#090d16',
+                        padding: '16px', borderRadius: 'var(--radius-sm)', color: '#e2e8f0', whiteSpace: 'pre-wrap', marginBottom: '16px'
+                      }}>
+                        {selectedTemplate.content}
+                      </pre>
+                      <div style={{ textAlign: 'right' }}>
+                        <button onClick={() => handleCopyText(selectedTemplate.id, selectedTemplate.content)} className="btn-primary">
+                          {copiedId === selectedTemplate.id ? '¡Copiado!' : '📋 Copiar Texto'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* RED DE VOLUNTARIOS */}
+            {activeTab === 'volunteers' && (
+              <section className="animate-fade-in" style={{ maxWidth: '840px', margin: '0 auto' }}>
+                <div className="glass-card" style={{ padding: '32px', marginBottom: '28px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                  <span className="badge" style={{ background: 'rgba(168, 85, 247, 0.15)', color: 'var(--accent-purple)', border: '1px solid rgba(168, 85, 247, 0.3)', marginBottom: '8px' }}>
+                    Orientación Gratuita
+                  </span>
+                  <h3 style={{ fontSize: '1.5rem', color: '#ffffff', fontWeight: '800', marginBottom: '8px' }}>
+                    Asistencia Técnica Remota con Voluntarios ITSE
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
+                    Si tu pyme está en semáforo rojo o necesitas guía paso a paso, nuestra red de estudiantes de Ciberseguridad del ITSE te asiste de forma gratuita. Elige tu canal preferido de contacto:
+                  </p>
+                </div>
+
+                {submittedVolunteers ? (
+                  <div className="glass-card" style={{ padding: '40px', textAlign: 'center', border: '1px solid var(--risk-safe-border)' }}>
+                    <h4 style={{ color: '#ffffff', fontSize: '1.3rem', fontWeight: '800', marginBottom: '10px' }}>¡Solicitud Procesada!</h4>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
+                      Tu consulta de <strong>{formVolunteers.businessName || 'tu Pyme'}</strong> ({formVolunteers.province}) ha sido enviada. Te contactaremos pronto.
+                    </p>
+                    <button onClick={() => setSubmittedVolunteers(false)} className="btn-secondary">Enviar otra consulta</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitEmail} className="glass-card" style={{ padding: '32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Nombre del Negocio</label>
+                      <input required type="text" value={formVolunteers.businessName} onChange={e => setFormVolunteers({ ...formVolunteers, businessName: e.target.value })} placeholder="Ej: Minisúper El Sol" style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Nombre de Contacto</label>
+                      <input required type="text" value={formVolunteers.contactName} onChange={e => setFormVolunteers({ ...formVolunteers, contactName: e.target.value })} placeholder="Ej: María Rodríguez" style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Teléfono / WhatsApp</label>
+                      <input required type="tel" value={formVolunteers.phone} onChange={e => setFormVolunteers({ ...formVolunteers, phone: e.target.value })} placeholder="+507 6298-8190" style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Correo Electrónico (Opcional)</label>
+                      <input type="email" value={formVolunteers.email} onChange={e => setFormVolunteers({ ...formVolunteers, email: e.target.value })} placeholder="ejemplo@negocio.com" style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Provincia / País</label>
+                      <select value={formVolunteers.province} onChange={e => setFormVolunteers({ ...formVolunteers, province: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: '#111927', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}>
+                        <option value="Panamá">Panamá (Ciudad)</option>
+                        <option value="Chiriquí">Chiriquí</option>
+                        <option value="Panamá Oeste">Panamá Oeste</option>
+                        <option value="Veraguas">Veraguas</option>
+                        <option value="Colón">Colón</option>
+                        <option value="Otro">Otro país de América Latina</option>
+                      </select>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Detalles de la consulta</label>
+                      <textarea rows={3} value={formVolunteers.details} onChange={e => setFormVolunteers({ ...formVolunteers, details: e.target.value })} placeholder="¿Qué problema o duda tienes?" style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }} />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '14px', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                      <button type="button" onClick={handleOpenWhatsApp} className="btn-whatsapp" style={{ padding: '12px 24px' }}>
+                        💬 Enviar a mi WhatsApp (+507 6298-8190)
+                      </button>
+
+                      <button type="submit" disabled={sendingEmail} className="btn-primary" style={{ padding: '12px 28px', opacity: sendingEmail ? 0.6 : 1 }}>
+                        📧 {sendingEmail ? 'Enviando Correo...' : 'Enviar a kaelpinedaa04@gmail.com'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </section>
+            )}
+
+            {/* SOBRE EL PROYECTO */}
+            {activeTab === 'proposal' && (
+              <section className="animate-fade-in" style={{ maxWidth: '920px', margin: '0 auto' }}>
+                <div className="glass-card" style={{ padding: '36px', marginBottom: '24px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                  <span className="badge badge-cyan" style={{ marginBottom: '8px' }}>PROYECTO INDEPENDIENTE</span>
+                  <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>CiberVigía Pyme</h2>
+                  <p style={{ color: 'var(--accent-cyan)', fontSize: '1.05rem', marginBottom: '16px' }}>
+                    Plataforma de diagnóstico de ciberseguridad gratuita para pymes latinoamericanas
+                  </p>
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                    <strong>Jordy Kael Pineda D'Meza</strong> · Técnico Superior en Ciberseguridad (ITSE, Panamá, República de Panamá)
+                  </div>
+                </div>
+
+                <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
+                  <h4 style={{ color: '#ffffff', fontWeight: '700', fontSize: '1.15rem', marginBottom: '10px' }}>Resumen del Proyecto</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.6 }}>
+                    CiberVigía Pyme es una plataforma web gratuita y de código abierto para que dueños de pymes en América Latina puedan diagnosticar si su negocio fue comprometido digitalmente, sin necesidad de saber de tecnología. Al finalizar reciben un plan de acción concreto y accesible para mejorar su seguridad. La idea surgió al investigar la situación de las pymes en la región: miles operan con sistemas vulnerables sin saberlo y sin presupuesto para protegerse.
+                  </p>
+                </div>
+
+                <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
+                  <h4 style={{ color: '#ffffff', fontWeight: '700', fontSize: '1.15rem', marginBottom: '10px' }}>El Problema en América Latina</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.6 }}>
+                    1. <strong>No se dan cuenta de que fueron atacadas:</strong> El tiempo promedio antes de descubrir un ataque supera los 200 días.<br />
+                    2. <strong>No pueden pagar soluciones:</strong> Una auditoría básica en Panamá y Centroamérica cuesta más de $1,500 USD.<br />
+                    3. <strong>No saben por dónde empezar:</strong> Falta de cultura de seguridad, claves compartidas y ausencia de respaldos.
+                  </p>
+                </div>
+
+                <div className="glass-card" style={{ padding: '28px' }}>
+                  <h4 style={{ color: '#ffffff', fontWeight: '700', fontSize: '1.15rem', marginBottom: '10px' }}>Visión de Impacto</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.6 }}>
+                    • <strong>Fase Inicial:</strong> Diagnóstico gratuito para pymes en Chiriquí y Ciudad de Panamá, red de estudiantes voluntarios del ITSE.<br />
+                    • <strong>Fase de Escalamiento:</strong> Expansión regional a Costa Rica, Guatemala, Honduras, El Salvador, Nicaragua y Colombia.<br />
+                    • <strong>Fase de Consolidación:</strong> Plataforma abierta de inteligencia de amenazas anonimizadas y capacitaciones para pymes.
+                  </p>
+                </div>
+              </section>
+            )}
+
+          </main>
+
+          {/* FOOTER */}
+          <footer style={{ background: '#070a12', borderTop: '1px solid var(--border-color)', padding: '20px 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div><strong style={{ color: '#ffffff' }}>CiberVigía Pyme</strong> · Ciberseguridad Gratuita para América Latina</div>
+              <div>Jordy Kael Pineda D'Meza · Proyecto Personal · ITSE Panamá</div>
+            </div>
+          </footer>
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
